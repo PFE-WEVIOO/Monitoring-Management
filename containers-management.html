@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard VMs & Docker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            font-weight: 300;
+        }
+
+        button {
+            margin: 10px;
+            padding: 12px 24px;
+            cursor: pointer;
+            border: none;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        button:hover:before {
+            left: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Bouton principal */
+        body>button {
+            background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+            color: white;
+            font-size: 16px;
+            padding: 15px 30px;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+            display: block;
+            margin: 0 auto 30px;
+        }
+
+        body>button:hover {
+            background: linear-gradient(45deg, #ff5252, #ff7575);
+        }
+
+
+
+        .vm-list {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .vm-item {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .vm-item:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+        }
+
+        .vm-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .vm-item strong {
+            font-size: 1.3rem;
+            color: #2c3e50;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .actions {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .actions button {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            color: white;
+            font-size: 12px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            box-shadow: 0 3px 10px rgba(78, 205, 196, 0.3);
+            margin: 0;
+        }
+
+        .actions button:hover {
+            background: linear-gradient(45deg, #3db5ac, #3a8f84);
+        }
+
+        /* Boutons spécialisés */
+        .actions button:nth-child(1) {
+            background: linear-gradient(45deg, #ffeaa7, #fdcb6e);
+            color: #2d3436;
+            box-shadow: 0 3px 10px rgba(255, 234, 167, 0.4);
+        }
+
+        .actions button:nth-child(2) {
+            background: linear-gradient(45deg, #55efc4, #00b894);
+            box-shadow: 0 3px 10px rgba(85, 239, 196, 0.4);
+        }
+
+        .actions button:nth-child(3) {
+            background: linear-gradient(45deg, #74b9ff, #0984e3);
+            box-shadow: 0 3px 10px rgba(116, 185, 255, 0.4);
+        }
+
+        .actions button:nth-child(4) {
+            background: linear-gradient(45deg, #fd79a8, #e84393);
+            box-shadow: 0 3px 10px rgba(253, 121, 168, 0.4);
+        }
+
+        pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 15px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.1);
+            border: 1px solid #4a5568;
+        }
+
+        #output {
+            margin-top: 30px;
+        }
+
+        #output h3 {
+            margin-top: 30px;
+            margin-bottom: 20px;
+            color: white;
+            font-size: 1.8rem;
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            font-weight: 300;
+        }
+
+        /* Cartes des statistiques */
+        #output .card,
+        #output>div>div {
+            background: rgba(255, 255, 255, 0.95) !important;
+            backdrop-filter: blur(10px) !important;
+            border-radius: 15px !important;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            transition: all 0.3s ease !important;
+            position: relative !important;
+            overflow: hidden !important;
+        }
+
+        #output .card:before,
+        #output>div>div:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+        }
+
+        #output .card:hover,
+        #output>div>div:hover {
+            transform: translateY(-3px) !important;
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.15) !important;
+        }
+
+        #output .card p,
+        #output>div>div p {
+            margin-bottom: 10px;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        #output .card strong,
+        #output>div>div strong {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        /* Grid des conteneurs */
+        #output>div[style*="grid"] {
+            display: grid !important;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)) !important;
+            gap: 20px !important;
+        }
+
+        /* Boutons dans les cartes */
+        #output button {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin: 5px 5px 5px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 3px 10px rgba(102, 126, 234, 0.3);
+        }
+
+        #output button:hover {
+            background: linear-gradient(45deg, #5a67d8, #6b46c1);
+            transform: translateY(-2px);
+        }
+
+        /* Boutons spécialisés dans les cartes */
+        #output button:contains("Stats"),
+        button[onclick*="fetchSingleContainerStats"] {
+            background: linear-gradient(45deg, #ffeaa7, #fdcb6e) !important;
+            color: #2d3436 !important;
+        }
+
+        #output button:contains("Stop"),
+        button[onclick*="stopContainer"] {
+            background: linear-gradient(45deg, #ff7675, #d63031) !important;
+        }
+
+        #output button:contains("Start"),
+        button[onclick*="startContainer"] {
+            background: linear-gradient(45deg, #55efc4, #00b894) !important;
+        }
+
+        #output button:contains("Logs"),
+        button[onclick*="viewLogs"] {
+            background: linear-gradient(45deg, #74b9ff, #0984e3) !important;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .vm-item {
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .vm-list {
+                grid-template-columns: 1fr;
+            }
+
+            .actions {
+                justify-content: center;
+            }
+
+            #output>div[style*="grid"] {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        /* Scrollbar personnalisée */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(45deg, #5a67d8, #6b46c1);
+        }
+
+        .alert-card {
+            background: #ffe6e6;
+            border-left: 5px solid #e60000;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .alert-card h3 {
+            color: #cc0000;
+            margin-bottom: 10px;
+        }
+
+        .alert-card p {
+            margin: 5px 0;
+        }
+
+        /* Section des alertes */
+        #alerts {
+            margin-bottom: 30px;
+        }
+
+        .alert-card {
+            background: linear-gradient(135deg, #ff6b6b, #ff5252);
+            color: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
+            border-left: 5px solid #ff3333;
+            backdrop-filter: blur(10px);
+            animation: alertPulse 2s infinite alternate;
+        }
+
+        .alert-card h3 {
+            color: white;
+            margin-bottom: 15px;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .alert-card p {
+            margin: 8px 0;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            backdrop-filter: blur(5px);
+        }
+
+        @keyframes alertPulse {
+            0% {
+                box-shadow: 0 8px 25px rgba(255, 107, 107, 0.3);
+            }
+
+            100% {
+                box-shadow: 0 12px 35px rgba(255, 107, 107, 0.5);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Mes Machines Virtuelles</h1>
+    <div id="alerts"></div>
+
+    <button onclick="fetchVMs()">Afficher mes VMs</button>
+    <div id="vmList" class="vm-list"></div>
+    <div id="output"></div>
+    <script>
+
+        // Charger les alertes au chargement de la page
+        window.addEventListener('load', fetchAlerts);
+
+        async function fetchAlerts() {
+            try {
+                const res = await fetch('http://localhost:5050/api/alerts');
+                const data = await res.json();
+                const alertsDiv = document.getElementById('alerts');
+                alertsDiv.innerHTML = ''; // reset
+
+                // Filtrer seulement les alertes avec statut "alert" ou "vm_error"
+                const criticalAlerts = data.alerts.filter(alert =>
+                    alert.status === 'alert' || alert.status === 'vm_error'
+                );
+
+                if (criticalAlerts.length === 0) {
+                    return; // Pas d'alertes critiques
+                }
+
+                const grouped = {};
+
+                // Grouper les alertes par VM
+                criticalAlerts.forEach(alert => {
+                    const vm = alert.vm || 'inconnue';
+                    if (!grouped[vm]) grouped[vm] = [];
+                    grouped[vm].push(alert);
+                });
+
+                for (const [vm, vmAlerts] of Object.entries(grouped)) {
+                    const card = document.createElement('div');
+                    card.className = 'alert-card';
+
+                    // Déterminer le type d'alerte pour le style
+                    const hasVmError = vmAlerts.some(alert => alert.status === 'vm_error');
+                    const hasDiskAlert = vmAlerts.some(alert => alert.alert_type === 'disk' && alert.status === 'alert');
+
+                    if (hasVmError) {
+                        card.classList.add('vm-error-alert');
+                    } else if (hasDiskAlert) {
+                        card.classList.add('disk-alert');
+                    }
+
+                    card.innerHTML = `<h3>🚨 Alerte(s) pour <strong>${vm}</strong></h3>`;
+
+                    vmAlerts.forEach(alert => {
+                        const p = document.createElement('p');
+                        let icon = '⚠️';
+
+                        if (alert.status === 'vm_error') {
+                            icon = '🔴';
+                        } else if (alert.alert_type === 'disk') {
+                            icon = '💾';
+                        } else if (alert.alert_type === 'ram') {
+                            icon = '🧠';
+                        }
+
+                        p.innerHTML = `${icon} <strong>${alert.alert_type.toUpperCase()}:</strong> ${alert.message}`;
+
+                        // Ajouter des détails supplémentaires pour les alertes de disque
+                        if (alert.alert_type === 'disk' && alert.disk_info) {
+                            p.innerHTML += `<br>📊 Détails: ${alert.disk_info.used} utilisés sur ${alert.disk_info.size} (${alert.disk_info.avail} disponibles)`;
+                        }
+
+                        card.appendChild(p);
+                    });
+
+                    alertsDiv.appendChild(card);
+                }
+
+            } catch (err) {
+                console.error("Erreur lors du chargement des alertes :", err);
+            }
+        }
+        async function fetchVMs() {
+            try {
+                const res = await fetch('http://localhost:5050/api/vms');
+                const data = await res.json();
+                const list = document.getElementById('vmList');
+                list.innerHTML = '';
+
+                data.vms.forEach(vm => {
+                    const div = document.createElement('div');
+                    div.className = 'vm-item';
+                    div.innerHTML = `
+            <strong>${vm.label}</strong> (${vm.ip})<br>
+            <div class="actions">
+            <button onclick="fetchVMStats('${vm.label}')">📊 Stats VM</button>
+            <button onclick="fetchData('${vm.label}', 'running')">🟢 Conteneurs Actifs</button>
+            <button onclick="fetchData('${vm.label}', 'images')">📦 Images</button>
+            <button onclick="fetchData('${vm.label}', 'stopped')">⛔ Conteneurs Arrêtés</button>
+            <button onclick="fetchJogetProjects('${vm.label}')">📁 Projets Joget</button>
+            </div>
+          `;
+                    list.appendChild(div);
+                });
+            } catch (err) {
+                alert("Erreur lors du chargement des VMs : " + err);
+            }
+        }
+
+        async function fetchSingleContainerStats(label, containerName) {
+            try {
+                const res = await fetch(`http://localhost:5050/api/vm/${label}/docker/container/${containerName}/stats`);
+                const data = await res.json();
+
+                const output = document.getElementById('output');
+                output.innerHTML = `<h3>Statistiques du conteneur : ${containerName} (VM: ${label})</h3>`;
+
+                const card = document.createElement('div');
+                card.style.background = '#fff';
+                card.style.padding = '20px';
+                card.style.borderRadius = '10px';
+                card.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+                card.innerHTML = `
+      <p><strong>Nom:</strong> ${data.container}</p>
+      <p><strong>CPU:</strong> ${data.cpu_percent}</p>
+      <p><strong>RAM:</strong> ${data.memory_usage} (${data.memory_percent})</p>
+      <p><strong>Network I/O:</strong> ${data.network_io}</p>
+      <p><strong>Block I/O:</strong> ${data.block_io}</p>
+      <p><strong>Timestamp:</strong> ${new Date(data.timestamp).toLocaleString()}</p>
+      <p><strong>Status:</strong> ${data.status}</p>
+    `;
+
+                output.appendChild(card);
+            } catch (err) {
+                alert("Erreur récupération stats conteneur : " + err);
+            }
+        }
+
+
+        async function fetchVMStats(label) {
+            try {
+                const res = await fetch(`http://localhost:5050/api/vm/${label}/stats`);
+                const data = await res.json();
+
+                const output = document.getElementById('output');
+                output.innerHTML = `<h3>Statistiques de la VM: ${label}</h3>`;
+
+                const card = document.createElement('div');
+                card.style.background = '#fff';
+                card.style.padding = '20px';
+                card.style.borderRadius = '10px';
+                card.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+                card.innerHTML = `
+      <p><strong>IP:</strong> ${data.ip}</p>
+      <p><strong>CPU:</strong> ${data.cpu}%</p>
+      <p><strong>RAM:</strong> ${data.ram.used_mb} MB / ${data.ram.total_mb} MB (${data.ram.usage_percent}%)</p>
+      <p><strong>Disque:</strong> ${data.disk.used} / ${data.disk.size} (${data.disk.use_percent})</p>
+      <p><strong>Uptime:</strong> ${data.uptime}</p>
+      <p><strong>Status:</strong> ${data.status}</p>
+    `;
+
+                output.appendChild(card);
+            } catch (err) {
+                alert("Erreur récupération stats VM : " + err);
+            }
+        }
+
+        async function stopContainer(label, containerName) {
+            if (!confirm(`Arrêter le conteneur ${containerName} ?`)) return;
+            try {
+                const res = await fetch(`http://localhost:5050/api/vm/${label}/docker/container/${containerName}/stop`, {
+                    method: 'POST'
+                });
+                const data = await res.json();
+                alert(data.message || "Conteneur arrêté !");
+            } catch (err) {
+                alert("Erreur arrêt du conteneur : " + err);
+            }
+        }
+
+        async function fetchAlerts() {
+            try {
+                const res = await fetch('http://localhost:5050/api/alerts');
+                const data = await res.json();
+                const alertsDiv = document.getElementById('alerts');
+                alertsDiv.innerHTML = ''; // reset
+
+                const grouped = {};
+
+                // Grouper les alertes par VM
+                data.alerts.forEach(alert => {
+                    const vm = alert.vm || 'inconnue';
+                    if (!grouped[vm]) grouped[vm] = [];
+                    grouped[vm].push(alert);
+                });
+
+                for (const [vm, vmAlerts] of Object.entries(grouped)) {
+                    const card = document.createElement('div');
+                    card.className = 'alert-card';
+                    card.innerHTML = `<h3>🔔 Alerte(s) pour <strong>${vm}</strong></h3>`;
+
+                    vmAlerts.forEach(alert => {
+                        if (alert.status === 'alert') {
+                            const p = document.createElement('p');
+                            p.innerHTML = `⚠️ ${alert.alert_type.toUpperCase()} → ${alert.message}`;
+                            card.appendChild(p);
+                        }
+                    });
+
+                    alertsDiv.appendChild(card);
+                }
+
+            } catch (err) {
+                console.error("Erreur lors du chargement des alertes :", err);
+            }
+        }
+
+
+
+
+        async function startContainer(label, containerName) {
+            if (!confirm(`Démarrer le conteneur ${containerName} ?`)) return;
+            try {
+                const res = await fetch(`http://localhost:5050/api/vm/${label}/docker/container/${containerName}/start`, {
+                    method: 'POST'
+                });
+                const data = await res.json();
+                alert(data.message || "Conteneur démarré !");
+            } catch (err) {
+                alert("Erreur démarrage du conteneur : " + err);
+            }
+        }
+
+        async function viewLogs(label, containerName) {
+            try {
+                const res = await fetch(`http://localhost:5050/api/vm/${label}/docker/container/${containerName}/logs?lines=100`);
+                const data = await res.json();
+                const output = document.getElementById('output');
+                output.innerHTML = `
+      <h3>Logs du conteneur ${containerName} (VM: ${label})</h3>
+      <pre style="background:#f4f4f4; padding:10px; border-radius:5px; max-height:400px; overflow:auto;">${data.logs}</pre>
+    `;
+            } catch (err) {
+                alert("Erreur récupération des logs : " + err);
+            }
+        }
+
+
+
+        async function fetchData(label, type) {
+            let url = '';
+            if (type === 'running') url = `/api/vm/${label}/docker/running`;
+            else if (type === 'images') url = `/api/vm/${label}/docker/images`;
+            else if (type === 'stopped') url = `/api/vm/${label}/docker/stopped`;
+            else return;
+
+            try {
+                const res = await fetch(`http://localhost:5050${url}`);
+                const data = await res.json();
+
+                const output = document.getElementById('output');
+                output.innerHTML = `<h3>${type.toUpperCase()} - VM: ${label}</h3>`;
+
+                const container = document.createElement('div');
+                container.style.display = 'grid';
+                container.style.gridTemplateColumns = 'repeat(auto-fit, minmax(300px, 1fr))';
+                container.style.gap = '15px';
+
+                if (data.data && data.data.length > 0) {
+                    data.data.forEach(item => {
+                        const card = document.createElement('div');
+                        card.style.background = '#fff';
+                        card.style.borderRadius = '10px';
+                        card.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+                        card.style.padding = '15px';
+
+                        const containerName = item.Names ? item.Names.split(' ')[0] : '';
+
+                        if (type === 'images') {
+                            card.innerHTML = `
+            <strong>${item.Repository || 'Image inconnue'}</strong>
+            <p><strong>Tag:</strong> ${item.Tag}</p>
+            <p><strong>Image ID:</strong> ${item.ID}</p>
+            <p><strong>Size:</strong> ${item.Size}</p>
+          `;
+                        } else {
+                            card.innerHTML = `
+            <strong>${containerName}</strong>
+            <p><strong>Image:</strong> ${item.Image}</p>
+            <p><strong>Status:</strong> ${item.Status}</p>
+            <p><strong>Conteneur ID:</strong> ${item.ID}</p>
+            ${type === 'running' ? `
+              <button onclick="fetchSingleContainerStats('${label}', '${containerName}')">📈 Stats</button>
+              <button onclick="stopContainer('${label}', '${containerName}')">⏹ Stop</button>
+              <button onclick="viewLogs('${label}', '${containerName}')">📜 Logs</button>
+            ` : ''}
+            ${type === 'stopped' ? `
+              <button onclick="startContainer('${label}', '${containerName}')">▶️ Start</button>
+            ` : ''}
+          `;
+                        }
+
+                        container.appendChild(card);
+                    });
+                } else {
+                    container.innerHTML = `<p>Aucune donnée trouvée.</p>`;
+                }
+
+                output.appendChild(container);
+            } catch (err) {
+                alert("Erreur API : " + err);
+            }
+        }
+
+        async function fetchJogetProjects(label) {
+            try {
+                const res = await fetch(`http://localhost:5050/api/vm/${label}/joget-projects`);
+                const data = await res.json();
+
+                const output = document.getElementById('output');
+                output.innerHTML = `<h3>📁 Projets Joget - VM: ${label}</h3>`;
+
+                const container = document.createElement('div');
+                container.style.display = 'grid';
+                container.style.gridTemplateColumns = 'repeat(auto-fit, minmax(300px, 1fr))';
+                container.style.gap = '15px';
+
+                if (data.status === "ok" && data.joget_containers.length > 0) {
+                    data.joget_containers.forEach(entry => {
+                        const card = document.createElement('div');
+                        card.style.background = '#fff';
+                        card.style.borderRadius = '10px';
+                        card.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+                        card.style.padding = '15px';
+
+                        card.innerHTML = `
+                    <h4>🧱 Conteneur: ${entry.container}</h4>
+                    <p><strong>Projets:</strong></p>
+                    <ul>
+                        ${entry.projects.map(p => `<li>${p}</li>`).join('')}
+                    </ul>
+                `;
+                        container.appendChild(card);
+                    });
+                } else {
+                    container.innerHTML = `<p>Aucun projet trouvé ou conteneur Joget non actif.</p>`;
+                }
+
+                output.appendChild(container);
+            } catch (err) {
+                alert("Erreur API : " + err);
+            }
+        }
+
+
+    </script>
+</body>
+
+</html>

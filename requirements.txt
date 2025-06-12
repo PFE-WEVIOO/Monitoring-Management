@@ -1,0 +1,9 @@
+Flask
+flask-cors
+psutil
+paramiko
+Flask-Caching
+PyMuPDF
+langchain
+sentence-transformers
+langchain_openrouter

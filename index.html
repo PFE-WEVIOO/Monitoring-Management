@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VM Monitoring Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #48bb78;
+            --warning-color: #ed8936;
+            --danger-color: #f56565;
+            --dark-color: #2d3748;
+            --gray-color: #718096;
+            --light-bg: rgba(255, 255, 255, 0.95);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --border-radius: 15px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            min-height: 100vh;
+            color: var(--dark-color);
+        }
+
+
+        .dashboard-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: var(--light-bg);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius);
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header h1 {
+            color: var(--dark-color);
+            font-size: 2.2rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--gray-color);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4a5568;
+            transform: translateY(-2px);
+        }
+
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-online {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .status-offline {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .status-loading {
+            background: var(--warning-color);
+            color: white;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 25px;
+            min-height: calc(100vh - 160px);
+        }
+
+        .vm-list-container {
+            background: var(--light-bg);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius);
+            padding: 25px;
+            box-shadow: var(--shadow);
+            overflow-y: auto;
+            max-height: calc(100vh - 160px);
+        }
+
+        .vm-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .vm-list-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .vm-count {
+            background: var(--primary-color);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .vm-card {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            position: relative;
+        }
+
+        .vm-card:hover {
+            background: #edf2f7;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .vm-card.active {
+            border-color: var(--primary-color);
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+        }
+
+        .vm-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .vm-name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--dark-color);
+        }
+
+        .vm-state-badge {
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .vm-info {
+            font-size: 0.85rem;
+            color: var(--gray-color);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .vm-stats {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .vm-stats-loading {
+            text-align: center;
+            color: var(--gray-color);
+            font-size: 0.9rem;
+            padding: 10px;
+        }
+
+        .stat-row {
+            margin-bottom: 12px;
+        }
+
+        .stat-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .vm-info-label {
+            font-weight: 600;
+            color: var(--dark-color);
+            font-size: 0.85rem;
+        }
+
+        .vm-info-value {
+            font-weight: 700;
+            color: var(--primary-color);
+            font-size: 0.85rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+            border-radius: 3px;
+        }
+
+        .cpu-progress {
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+        }
+
+        .ram-progress {
+            background: linear-gradient(90deg, var(--warning-color), #dd6b20);
+        }
+
+        .disk-progress {
+            background: linear-gradient(90deg, #38b2ac, #319795);
+        }
+
+        .content-area {
+            background: var(--light-bg);
+            backdrop-filter: blur(10px);
+            border-radius: var(--border-radius);
+            padding: 30px;
+            box-shadow: var(--shadow);
+            overflow-y: auto;
+            max-height: calc(100vh - 160px);
+        }
+
+        .vm-details-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .vm-details-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 35px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f7fafc, #edf2f7);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            transition: transform 0.3s ease;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            margin: 0 auto 15px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+        }
+
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: var(--gray-color);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .containers-section {
+            margin-top: 35px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            color: var(--dark-color);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+        }
+
+        .containers-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .container-card {
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid var(--success-color);
+            transition: transform 0.3s ease;
+        }
+
+        .container-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .container-card.stopped {
+            border-left-color: var(--danger-color);
+        }
+
+        .container-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .container-name {
+            font-weight: 700;
+            color: var(--dark-color);
+            font-size: 1rem;
+        }
+
+        .container-status {
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-running {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-stopped {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            font-size: 1.2rem;
+            color: var(--gray-color);
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .error {
+            background: #fed7d7;
+            color: #742a2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid var(--danger-color);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray-color);
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .stats-overview {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-container {
+                padding: 15px;
+            }
+
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .containers-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <div class="header">
+            <h1>🖥️ VM Monitoring Dashboard</h1>
+            <div class="header-controls">
+                <div class="status-badge status-loading" id="connectionStatus">
+                    <span>⏳</span>
+                    <span id="statusText">Initialisation...</span>
+                </div>
+                <button class="btn btn-primary" onclick="refreshAll()">🔁 Rafraîchir</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="vm-list-container">
+                <div class="vm-list-header">
+                    <div class="vm-list-title">
+                        📋 Machines Virtuelles
+                        <span class="vm-count" id="vmCount">0</span>
+                    </div>
+                </div>
+                <div id="vmListContainer">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <span>Chargement des VMs...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content-area">
+                <div id="contentContainer">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🖥️</div>
+                        <h3>Sélectionnez une VM</h3>
+                        <p>Choisissez une machine virtuelle dans la liste pour afficher ses détails et statistiques</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE_URL = 'http://localhost:5050/api';
+
+        // État global
+        let selectedVM = null;
+        let autoRefreshInterval = null;
+        let vmData = {};
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function () {
+            initializeDashboard();
+        });
+
+        async function initializeDashboard() {
+            updateConnectionStatus('loading', 'Initialisation...');
+            setupAutoRefresh();
+            await loadVMs();
+        }
+
+        function setupAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+
+            autoRefreshInterval = setInterval(async () => {
+                await loadVMs();
+                if (selectedVM) {
+                    await loadVMDetails(selectedVM);
+                }
+            }, 150000); // Refresh every 15 seconds
+        }
+
+        async function loadVMs() {
+            try {
+                updateConnectionStatus('loading', 'Chargement...');
+
+                const response = await fetch(`${API_BASE_URL}/vms`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                const vms = data.vms || [];
+                vmData = {};
+
+                // Stocker les données des VMs
+                vms.forEach(vm => {
+                    vmData[vm.label] = vm;
+                });
+
+                await displayVMs(vms);
+                updateConnectionStatus('online', 'Connecté');
+
+                // Charger les stats pour toutes les VMs en arrière-plan
+                loadAllVMStats(vms);
+
+            } catch (error) {
+                console.error('Erreur lors du chargement des VMs:', error);
+                updateConnectionStatus('offline', 'Erreur de connexion');
+                displayError('vmListContainer', `Impossible de charger les VMs: ${error.message}`);
+            }
+        }
+
+        async function loadAllVMStats(vms) {
+            for (const vm of vms) {
+                try {
+                    await loadVMStats(vm.label);
+                } catch (error) {
+                    console.error(`Erreur stats pour ${vm.label}:`, error);
+                }
+            }
+        }
+
+        async function loadVMStats(vmName) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/vm/${vmName}/stats`);
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                const stats = await response.json();
+
+                if (stats.status !== "connected") throw new Error("VM non connectée");
+
+                const statsContainer = document.getElementById(`stats-${vmName}`);
+                if (!statsContainer) return;
+                statsContainer.innerHTML = ''; // Nettoyage
+
+                const cpu = parseFloat(stats.cpu || 0);
+                const ramUsed = stats.ram?.used_mb || 0;
+                const ramTotal = stats.ram?.total_mb || 1;
+                const ramPercent = (ramUsed / ramTotal * 100).toFixed(1);
+                const diskUsed = stats.disk?.used || 'N/A';
+                const diskTotal = stats.disk?.size || 'N/A';
+                const diskPercent = parseFloat(stats.disk?.use_percent?.replace('%', '') || 0);
+                const ip = stats.ip || 'N/A';
+
+                // Status & IP
+                statsContainer.innerHTML += `
+            <div class="vm-info" style="display: flex; justify-content: space-between;">
+                <span>🟢 Status:</span><span style="font-weight: 600;">${stats.status}</span>
+            </div>
+            
+            <div class="vm-info" style="display: flex; justify-content: space-between;">
+                <span>🌐 IP:</span><span style="font-weight: 600;">${ip}</span>
+            </div>
+        `;
+
+                // CPU row
+                statsContainer.innerHTML += `
+            <div class="stat-row" id="cpu-row-${vmName}">
+                <div class="stat-info">
+                    <span class="vm-info-label">CPU:</span>
+                    <span class="vm-info-value" id="cpu-${vmName}">${cpu.toFixed(1)}%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill cpu-progress" id="cpu-bar-${vmName}" style="width: ${cpu}%"></div>
+                </div>
+            </div>
+        `;
+
+                // RAM row
+                statsContainer.innerHTML += `
+            <div class="stat-row" id="ram-row-${vmName}">
+                <div class="stat-info">
+                    <span class="vm-info-label">RAM:</span>
+                    <span class="vm-info-value" id="ram-${vmName}">${ramUsed}MB / ${ramTotal}MB (${ramPercent}%)</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill ram-progress" id="ram-bar-${vmName}" style="width: ${ramPercent}%"></div>
+                </div>
+            </div>
+        `;
+
+                // Disk row
+                statsContainer.innerHTML += `
+            <div class="stat-row" id="disk-row-${vmName}">
+                <div class="stat-info">
+                    <span class="vm-info-label">Disk:</span>
+                    <span class="vm-info-value" id="disk-${vmName}">${diskUsed} / ${diskTotal} (${diskPercent}%)</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill disk-progress" id="disk-bar-${vmName}" style="width: ${diskPercent}%"></div>
+                </div>
+            </div>
+        `;
+
+            } catch (error) {
+                const statsContainer = document.getElementById(`stats-${vmName}`);
+                if (statsContainer) {
+                    statsContainer.innerHTML = `
+                <div style="color: #f56565; font-size: 0.85rem; text-align: center; padding: 5px;">
+                    ❌ ${error.message}
+                </div>
+            `;
+                }
+            }
+        }
+
+
+
+        function updateVMStats(vmName, stats) {
+            const statsContainer = document.getElementById(`stats-${vmName}`);
+            if (!statsContainer) return;
+
+            // Masquer le loading
+            const loadingEl = statsContainer.querySelector('.vm-stats-loading');
+            if (loadingEl) {
+                loadingEl.style.display = 'none';
+            }
+
+            // CPU
+            const cpuUsage = parseFloat(stats.cpu_usage_percent || stats.cpu_usage || 0);
+            updateStatRow(vmName, 'cpu', cpuUsage, '%');
+
+            // RAM
+            let ramUsage = 0;
+            if (stats.ram && stats.ram.used_mb && stats.ram.total_mb) {
+                ramUsage = (stats.ram.used_mb / stats.ram.total_mb) * 100;
+                const ramText = `${(stats.ram.used_mb / 1024).toFixed(1)}GB / ${(stats.ram.total_mb / 1024).toFixed(1)}GB`;
+                updateStatRow(vmName, 'ram', ramUsage, '%', ramText);
+            } else if (stats.memory_usage) {
+                ramUsage = parseFloat(stats.memory_usage);
+                updateStatRow(vmName, 'ram', ramUsage, '%');
+            }
+
+            // Disque
+            let diskUsage = 0;
+            if (stats.disk && stats.disk.use_percent) {
+                diskUsage = parseFloat(stats.disk.use_percent.replace('%', ''));
+                const diskText = `${stats.disk.used_gb || 'N/A'}GB / ${stats.disk.total_gb || 'N/A'}GB`;
+                updateStatRow(vmName, 'disk', diskUsage, '%', diskText);
+            } else if (stats.disk_usage) {
+                diskUsage = parseFloat(stats.disk_usage);
+                updateStatRow(vmName, 'disk', diskUsage, '%');
+            }
+        }
+
+        function updateStatRow(vmName, statType, value, unit, customText = null) {
+            const rowEl = document.getElementById(`${statType}-row-${vmName}`);
+            const valueEl = document.getElementById(`${statType}-${vmName}`);
+            const barEl = document.getElementById(`${statType}-bar-${vmName}`);
+
+            if (rowEl && valueEl && barEl) {
+                rowEl.style.display = 'block';
+                valueEl.textContent = customText || `${value.toFixed(1)}${unit}`;
+                barEl.style.width = `${Math.min(Math.max(value, 0), 100)}%`;
+            }
+        }
+
+        function showVMStatsError(vmName, error) {
+            const statsContainer = document.getElementById(`stats-${vmName}`);
+            if (!statsContainer) return;
+
+            statsContainer.innerHTML = `
+                <div style="color: #f56565; font-size: 0.8rem; text-align: center; padding: 5px;">
+                    ❌ ${error}
+                </div>
+            `;
+        }
+
+        async function displayVMs(vms) {
+            const container = document.getElementById('vmListContainer');
+            const countEl = document.getElementById('vmCount');
+
+            countEl.textContent = vms.length;
+
+            if (vms.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <p>Aucune VM trouvée</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = vms.map(vm => `
+                <div class="vm-card ${selectedVM === vm.label ? 'active' : ''}" onclick="selectVM('${vm.label}')">
+                    <div class="vm-card-header">
+                        <div class="vm-name">${vm.label}</div>
+                        <div class="vm-state-badge" style="background: ${getStateColor(vm.state)}; color: white;">
+                            ${vm.state || 'Unknown'}
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div class="vm-stats" id="stats-${vm.label}">
+                        <div class="vm-stats-loading">⏳ Chargement des statistiques...</div>
+                        
+                     
+                        
+                        <div class="stat-row" id="ram-row-${vm.label}" style="display: none;">
+                            <div class="stat-info">
+                                <span class="vm-info-label">RAM:</span>
+                                <span class="vm-info-value" id="ram-${vm.label}">-</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill ram-progress" id="ram-bar-${vm.label}" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-row" id="disk-row-${vm.label}" style="display: none;">
+                            <div class="stat-info">
+                                <span class="vm-info-label">Disque:</span>
+                                <span class="vm-info-value" id="disk-${vm.label}">-</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill disk-progress" id="disk-bar-${vm.label}" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getStateColor(state) {
+            switch (state?.toLowerCase()) {
+                case 'running': return '#48bb78';
+                case 'stopped': return '#f56565';
+                case 'paused': return '#ed8936';
+                default: return '#718096';
+            }
+        }
+
+        async function selectVM(vmName) {
+            // Mettre à jour la sélection
+            selectedVM = vmName;
+
+            // Mettre à jour l'interface
+            document.querySelectorAll('.vm-card').forEach(card => {
+                card.classList.remove('active');
+            });
+
+            const selectedCard = document.querySelector(`[onclick="selectVM('${vmName}')"]`);
+            if (selectedCard) {
+                selectedCard.classList.add('active');
+            }
+
+            // Charger les détails
+            await loadVMDetails(vmName);
+        }
+
+        async function loadVMDetails(vmName) {
+            const container = document.getElementById('contentContainer');
+            container.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <span>Chargement des détails de ${vmName}...</span>
+                </div>
+            `;
+
+            try {
+                // Charger les données en parallèle
+                const [statsResponse, containersResponse] = await Promise.allSettled([
+                    fetch(`${API_BASE_URL}/vm/${vmName}/stats`),
+                    fetch(`${API_BASE_URL}/vm/${vmName}/docker/containers`)
+                ]);
+
+                // Traiter les statistiques
+                let stats = { error: 'Aucune donnée disponible' };
+                if (statsResponse.status === 'fulfilled' && statsResponse.value.ok) {
+                    stats = await statsResponse.value.json();
+                }
+
+                // Traiter les conteneurs
+                let containers = { data: [], error: null };
+                if (containersResponse.status === 'fulfilled' && containersResponse.value.ok) {
+                    containers = await containersResponse.value.json();
+                }
+
+                displayVMDetails(vmName, stats, containers);
+
+            } catch (error) {
+                console.error('Erreur lors du chargement des détails:', error);
+                displayError('contentContainer', `Erreur lors du chargement des détails de ${vmName}: ${error.message}`);
+            }
+        }
+
+        function displayVMDetails(vmName, stats, containers) {
+            const container = document.getElementById('contentContainer');
+            const vm = vmData[vmName] || {};
+
+            let statsHtml = '';
+            if (stats.error) {
+                statsHtml = `<div class="error">❌ Statistiques indisponibles: ${stats.error}</div>`;
+            } else {
+                const cpuUsage = parseFloat(stats.cpu_usage_percent || stats.cpu_usage || 0);
+
+                let memUsage = 0;
+                let memText = 'N/A';
+                if (stats.ram && stats.ram.used_mb && stats.ram.total_mb) {
+                    memUsage = (stats.ram.used_mb / stats.ram.total_mb) * 100;
+                    memText = `${(stats.ram.used_mb / 1024).toFixed(1)}GB / ${(stats.ram.total_mb / 1024).toFixed(1)}GB`;
+                }
+
+                let diskUsage = 0;
+                let diskText = 'N/A';
+                if (stats.disk && stats.disk.used && stats.disk.size) {
+                    const used = parseFloat(stats.disk.used.replace(/[^\d.]/g, ''));
+                    const total = parseFloat(stats.disk.size.replace(/[^\d.]/g, ''));
+                    if (total > 0) {
+                        diskUsage = (used / total) * 100;
+                        diskText = `${stats.disk.used} / ${stats.disk.size}`;
+                    }
+                }
+
+                statsHtml = `
+                    <div class="stats-overview">
+                        <div class="stat-card">
+                            <div class="stat-icon">🧠</div>
+                            <div class="stat-value">${cpuUsage.toFixed(1)}%</div>
+                            <div class="stat-label">CPU Usage</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">💾</div>
+                            <div class="stat-value">${memText}</div>
+                            <div class="stat-label">RAM Usage</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">🗄️</div>
+                            <div class="stat-value">${diskText}</div>
+                            <div class="stat-label">Disk Usage</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            let containersHtml = '';
+            if (containers.error) {
+                containersHtml = `<div class="error">❌ Erreur de récupération des conteneurs : ${containers.error}</div>`;
+            } else if (!containers.data || containers.data.length === 0) {
+                containersHtml = `<div class="empty-state"><div class="empty-state-icon">📦</div><p>Aucun conteneur trouvé</p></div>`;
+            } else {
+                containersHtml = `
+                    <div class="containers-section">
+                        <div class="section-title">📦 Conteneurs Docker (${containers.data.length})</div>
+                        <div class="containers-grid">
+                            ${containers.data.map(container => {
+                    const isRunning = container.Status?.toLowerCase().includes('up');
+                    const containerName = container.Names || container.Name || 'unknown';
+                    return `
+                                    <div class="container-card ${isRunning ? '' : 'stopped'}">
+                                        <div class="container-header">
+                                            <div class="container-name">${containerName}</div>
+                                            <div class="container-status ${isRunning ? 'status-running' : 'status-stopped'}">
+                                                ${container.Status || 'inconnu'}
+                                            </div>
+                                        </div>
+                                        <div class="vm-info" style="justify-content: space-between;">
+                                            <span>📌 Image:</span><span style="font-weight: 600;">${container.Image || 'N/A'}</span>
+                                        </div>
+                                        <div class="vm-info" style="justify-content: space-between;">
+                                            <span>🔑 ID:</span><span style="font-weight: 600;">${container.ID || 'N/A'}</span>
+                                        </div>
+                                        <div class="vm-info" style="justify-content: space-between;">
+                                            <span>💾 Size:</span><span style="font-weight: 600;">${container.Size || 'N/A'}</span>
+                                        </div>
+                                        ${isRunning && container.Ports ? `
+                                        <div class="vm-info" style="justify-content: space-between; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                            <span>🔌 Ports:</span><span style="font-weight: 600;">${container.Ports}</span>
+                                        </div>` : ''}
+                                        ${isRunning ? `
+                                        <div class="vm-info" id="container-stats-${vmName}-${containerName}" style="justify-content: space-between;">
+                                            <span>📊</span><span style="font-weight: 600;">Chargement des stats...</span>
+                                        </div>` : ''}
+                                    </div>
+                                `;
+                }).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = `
+                <div class="vm-details-header">
+                    <div class="vm-details-title">🖥️ ${vmName}</div>
+                    <button class="btn btn-secondary" onclick="refreshAll()">🔁 Rafraîchir</button>
+                </div>
+                ${statsHtml}
+                ${containersHtml}
+            `;
+
+            // Charger les stats des containers en cours d’exécution
+            containers.data.forEach(container => {
+                const isRunning = container.Status?.toLowerCase().includes('up');
+                if (!isRunning) return;
+
+                const containerName = container.Names || container.Name;
+                fetch(`${API_BASE_URL}/vm/${vmName}/docker/container/${containerName}/stats`)
+                    .then(res => res.json())
+                    .then(data => {
+                        const el = document.getElementById(`container-stats-${vmName}-${containerName}`);
+                        if (el && data.status === 'ok') {
+                            el.innerHTML = `
+                                <div class="vm-info" style="justify-content: space-between;">
+                                    <span>🧠 CPU:</span><span style="font-weight: 600;">${data.cpu_percent}</span>
+                                </div>
+                                <div class="vm-info" style="justify-content: space-between;">
+                                    <span>💾 RAM:</span><span style="font-weight: 600;">${data.memory_usage} (${data.memory_percent})</span>
+                                </div>
+                                <div class="vm-info" style="justify-content: space-between;">
+                                    <span>🗄️ Disque:</span><span style="font-weight: 600;">${data.block_io}</span>
+                                </div>
+                            `;
+                        } else if (el) {
+                            el.innerHTML = `<div class="vm-info" style="color:red;">❌ ${data.error || 'Erreur inconnue'}</div>`;
+                        }
+                    })
+                    .catch(err => {
+                        const el = document.getElementById(`container-stats-${vmName}-${containerName}`);
+                        if (el) el.innerHTML = `<div class="vm-info" style="color:red;">❌ ${err.message}</div>`;
+                    });
+            });
+        }
+
+
+
+        function refreshAll() {
+            loadVMs();
+            if (selectedVM) {
+                loadVMDetails(selectedVM);
+            }
+        }
+
+        function updateConnectionStatus(state, message) {
+            const statusBadge = document.getElementById('connectionStatus');
+            const statusText = document.getElementById('statusText');
+            statusBadge.className = 'status-badge';
+            if (state === 'online') {
+                statusBadge.classList.add('status-online');
+            } else if (state === 'offline') {
+                statusBadge.classList.add('status-offline');
+            } else {
+                statusBadge.classList.add('status-loading');
+            }
+            statusText.textContent = message;
+        }
+
+        function displayError(containerId, message) {
+            const container = document.getElementById(containerId);
+            if (container) {
+                container.innerHTML = `<div class="error">${message}</div>`;
+            }
+        }
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Vagrant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 1.1rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .total {
+            color: #3498db;
+        }
+
+        .running {
+            color: #27ae60;
+        }
+
+        .stopped {
+            color: #e74c3c;
+        }
+
+        .system {
+            color: #9b59b6;
+        }
+
+        .vms-section {
+            margin-top: 40px;
+        }
+
+        .section-title {
+            color: white;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .vms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .vm-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .vm-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15);
+        }
+
+        .vm-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .vm-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .vm-status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-running {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-stopped {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-other {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .vm-info {
+            display: grid;
+            gap: 10px;
+        }
+
+        .vm-info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+        }
+
+        .vm-info-label {
+            font-weight: 600;
+            color: #666;
+        }
+
+        .vm-info-value {
+            color: #2c3e50;
+            font-family: 'Courier New', monospace;
+        }
+
+        .vm-stats {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .stat-row {
+            margin-bottom: 15px;
+        }
+
+        .stat-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .cpu-progress {
+            background: #3498db;
+        }
+
+        .ram-progress {
+            background: #e74c3c;
+        }
+
+        .disk-progress {
+            background: #f39c12;
+        }
+
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.2rem;
+            margin: 50px 0;
+        }
+
+        .error {
+            background: #e74c3c;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .success {
+            background: #27ae60;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .refresh-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: #2980b9;
+            transform: rotate(180deg);
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spinning {
+            animation: spin 1s linear infinite;
+        }
+
+        .debug-info {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+
+        .vm-stats-loading {
+            color: #666;
+            font-style: italic;
+            text-align: center;
+            padding: 10px;
+        }
+
+        .vm-stats-error {
+            color: #e74c3c;
+            font-size: 0.9rem;
+            text-align: center;
+            padding: 10px;
+            background: #ffe6e6;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖥️ Dashboard Vagrant</h1>
+            <p>Monitoring et gestion de vos machines virtuelles</p>
+        </div>
+
+        <div class="stats-overview">
+            <div class="stat-card">
+                <div class="stat-number total" id="totalVMs">-</div>
+                <div class="stat-label">Total VMs</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number running" id="runningVMs">-</div>
+                <div class="stat-label">En cours</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number stopped" id="stoppedVMs">-</div>
+                <div class="stat-label">Arrêtées</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number system" id="systemCPU">-</div>
+                <div class="stat-label">CPU Hôte (%)</div>
+            </div>
+        </div>
+
+        <div class="vms-section">
+            <h2 class="section-title">📋 Détails des Machines Virtuelles</h2>
+            <div id="loading" class="loading">Chargement des données...</div>
+            <div id="error" class="error" style="display: none;"></div>
+            <div id="success" class="success" style="display: none;"></div>
+            <div id="debug" class="debug-info" style="display: none;"></div>
+            <div id="vmsGrid" class="vms-grid"></div>
+        </div>
+    </div>
+
+    <button class="refresh-btn" onclick="refreshData()" title="Actualiser">
+        ↻
+    </button>
+
+    <script>
+        const API_BASE = 'http://localhost:5050/api';
+        let refreshInterval;
+        let debugMode = false;
+
+        // Fonction pour logger en mode debug
+        function debugLog(message) {
+            if (debugMode) {
+                console.log(message);
+                const debugDiv = document.getElementById('debug');
+                if (debugDiv) {
+                    debugDiv.style.display = 'block';
+                    debugDiv.innerHTML += '<br>' + new Date().toLocaleTimeString() + ': ' + message;
+                }
+            }
+        }
+
+        // Activer le mode debug avec Ctrl+D
+        document.addEventListener('keydown', function (e) {
+            if (e.ctrlKey && e.key === 'd') {
+                debugMode = !debugMode;
+                const debugDiv = document.getElementById('debug');
+                debugDiv.style.display = debugMode ? 'block' : 'none';
+                if (!debugMode) debugDiv.innerHTML = '';
+                console.log('Mode debug:', debugMode);
+            }
+        });
+
+        // Fonction pour formater les bytes
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Fonction pour obtenir la classe CSS du statut
+        function getStatusClass(state) {
+            switch (state.toLowerCase()) {
+                case 'running': return 'status-running';
+                case 'poweroff':
+                case 'stopped': return 'status-stopped';
+                default: return 'status-other';
+            }
+        }
+
+        // Fonction pour charger les statistiques système
+        async function loadSystemStats() {
+            try {
+                debugLog('Chargement des stats système...');
+                const response = await fetch(`${API_BASE}/system`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                debugLog('Stats système reçues: ' + JSON.stringify(data));
+
+                document.getElementById('systemCPU').textContent = data.cpu_percent.toFixed(1);
+                showSuccess('Stats système chargées');
+            } catch (error) {
+                console.error('Erreur système:', error);
+                debugLog('Erreur système: ' + error.message);
+                document.getElementById('systemCPU').textContent = 'N/A';
+                showError('Erreur stats système: ' + error.message);
+            }
+        }
+
+        // Fonction pour charger les VMs
+        async function loadVMs() {
+            try {
+                debugLog('Chargement des VMs...');
+                const response = await fetch(`${API_BASE}/vms`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                debugLog('VMs reçues: ' + JSON.stringify(data));
+
+                if (data.vms && Array.isArray(data.vms)) {
+                    const vms = data.vms;
+                    const runningCount = vms.filter(vm => vm.state.toLowerCase() === 'running').length;
+                    const stoppedCount = vms.filter(vm => vm.state.toLowerCase() !== 'running').length;
+
+                    // Mise à jour des statistiques
+                    document.getElementById('totalVMs').textContent = vms.length;
+                    document.getElementById('runningVMs').textContent = runningCount;
+                    document.getElementById('stoppedVMs').textContent = stoppedCount;
+
+                    // Affichage des VMs
+                    displayVMs(vms);
+                    showSuccess(`${vms.length} VMs chargées (${runningCount} en cours)`);
+                } else {
+                    throw new Error('Format de données invalide: ' + JSON.stringify(data));
+                }
+            } catch (error) {
+                console.error('Erreur VMs:', error);
+                debugLog('Erreur VMs: ' + error.message);
+                showError('Impossible de charger les VMs: ' + error.message);
+            }
+        }
+
+        // Fonction pour charger les stats détaillées des VMs
+        async function loadVMStats() {
+            try {
+                debugLog('Chargement des stats des VMs...');
+                const response = await fetch(`${API_BASE}/vms/stats`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                debugLog('Stats VMs reçues: ' + JSON.stringify(data));
+
+                if (data.stats && Array.isArray(data.stats)) {
+                    let successCount = 0;
+                    data.stats.forEach(vmStat => {
+                        if (vmStat.vm && !vmStat.error) {
+                            updateVMStats(vmStat.vm, vmStat);
+                            successCount++;
+                        } else {
+                            debugLog(`Erreur stats pour ${vmStat.vm}: ${vmStat.error}`);
+                            showVMStatsError(vmStat.vm, vmStat.error);
+                        }
+                    });
+                    showSuccess(`Stats chargées pour ${successCount}/${data.stats.length} VMs`);
+                } else {
+                    debugLog('Pas de stats disponibles: ' + JSON.stringify(data));
+                }
+            } catch (error) {
+                console.error('Erreur stats VMs:', error);
+                debugLog('Erreur stats VMs: ' + error.message);
+                showError('Erreur stats VMs: ' + error.message);
+            }
+        }
+
+        // Fonction pour afficher les VMs
+        function displayVMs(vms) {
+            const grid = document.getElementById('vmsGrid');
+            grid.innerHTML = '';
+
+            if (vms.length === 0) {
+                grid.innerHTML = '<div style="color: white; text-align: center; grid-column: 1 / -1;">Aucune VM trouvée</div>';
+                return;
+            }
+
+            vms.forEach(vm => {
+                const vmCard = document.createElement('div');
+                vmCard.className = 'vm-card';
+                vmCard.id = `vm-${vm.name}`;
+
+                vmCard.innerHTML = `
+                    <div class="vm-header">
+                        <div class="vm-name">${vm.name}</div>
+                        <div class="vm-status ${getStatusClass(vm.state)}">${vm.state}</div>
+                    </div>
+                    <div class="vm-info">
+                        <div class="vm-info-row">
+                            <span class="vm-info-label">ID:</span>
+                            <span class="vm-info-value">${vm.id}</span>
+                        </div>
+                        <div class="vm-info-row">
+                            <span class="vm-info-label">Provider:</span>
+                            <span class="vm-info-value">${vm.provider}</span>
+                        </div>
+                        <div class="vm-info-row">
+                            <span class="vm-info-label">Répertoire:</span>
+                            <span class="vm-info-value" title="${vm.directory}">${vm.directory.length > 30 ? '...' + vm.directory.slice(-30) : vm.directory}</span>
+                        </div>
+                    </div>
+                    <div class="vm-stats" id="stats-${vm.name}">
+                        <div class="vm-stats-loading">⏳ Chargement des statistiques...</div>
+                        
+                        <div class="stat-row" id="cpu-row-${vm.name}" style="display: none;">
+                            <div class="stat-info">
+                                <span class="vm-info-label">CPU:</span>
+                                <span class="vm-info-value" id="cpu-${vm.name}">-</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill cpu-progress" id="cpu-bar-${vm.name}" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-row" id="ram-row-${vm.name}" style="display: none;">
+                            <div class="stat-info">
+                                <span class="vm-info-label">RAM:</span>
+                                <span class="vm-info-value" id="ram-${vm.name}">-</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill ram-progress" id="ram-bar-${vm.name}" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-row" id="disk-row-${vm.name}" style="display: none;">
+                            <div class="stat-info">
+                                <span class="vm-info-label">Disque:</span>
+                                <span class="vm-info-value" id="disk-${vm.name}">-</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill disk-progress" id="disk-bar-${vm.name}" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                grid.appendChild(vmCard);
+
+                // Afficher les stats seulement pour les VMs en cours d'exécution
+                if (vm.state.toLowerCase() !== 'running') {
+                    document.getElementById(`stats-${vm.name}`).style.display = 'none';
+                }
+            });
+        }
+
+        // Fonction pour mettre à jour les statistiques d'une VM
+        function updateVMStats(vmName, stats) {
+            debugLog(`Mise à jour stats pour ${vmName}: ${JSON.stringify(stats)}`);
+
+            // Masquer le message de chargement
+            const loadingDiv = document.querySelector(`#stats-${vmName} .vm-stats-loading`);
+            if (loadingDiv) {
+                loadingDiv.style.display = 'none';
+            }
+
+            // CPU
+            const cpu = stats.cpu_usage_percent || 0;
+            const cpuElement = document.getElementById(`cpu-${vmName}`);
+            const cpuBarElement = document.getElementById(`cpu-bar-${vmName}`);
+            const cpuRowElement = document.getElementById(`cpu-row-${vmName}`);
+
+            if (cpuElement && cpuBarElement && cpuRowElement) {
+                cpuElement.textContent = cpu.toFixed(1) + ' %';
+                cpuBarElement.style.width = `${Math.min(cpu, 100)}%`;
+                cpuRowElement.style.display = 'block';
+            }
+
+            // RAM
+            if (stats.ram && typeof stats.ram === 'object') {
+                const ram_used_mb = stats.ram.used_mb || 0;
+                const ram_total_mb = stats.ram.total_mb || 1;
+                const ramPercent = (ram_used_mb / ram_total_mb) * 100;
+
+                const ramElement = document.getElementById(`ram-${vmName}`);
+                const ramBarElement = document.getElementById(`ram-bar-${vmName}`);
+                const ramRowElement = document.getElementById(`ram-row-${vmName}`);
+
+                if (ramElement && ramBarElement && ramRowElement) {
+                    ramElement.textContent = `${ram_used_mb} MB / ${ram_total_mb} MB (${ramPercent.toFixed(1)}%)`;
+                    ramBarElement.style.width = `${Math.min(ramPercent, 100)}%`;
+                    ramRowElement.style.display = 'block';
+                }
+            }
+
+            // Disque
+            if (stats.disk && typeof stats.disk === 'object') {
+                const diskElement = document.getElementById(`disk-${vmName}`);
+                const diskBarElement = document.getElementById(`disk-bar-${vmName}`);
+                const diskRowElement = document.getElementById(`disk-row-${vmName}`);
+
+                if (diskElement && diskBarElement && diskRowElement) {
+                    const diskUsed = stats.disk.used || '0';
+                    const diskSize = stats.disk.size || '0';
+                    const diskPercentStr = stats.disk.use_percent || '0%';
+                    const diskPercent = parseFloat(diskPercentStr.replace('%', '')) || 0;
+
+                    diskElement.textContent = `${diskUsed} / ${diskSize} (${diskPercentStr})`;
+                    diskBarElement.style.width = `${Math.min(diskPercent, 100)}%`;
+                    diskRowElement.style.display = 'block';
+                }
+            }
+        }
+
+        // Fonction pour afficher une erreur de stats VM
+        function showVMStatsError(vmName, error) {
+            const statsDiv = document.getElementById(`stats-${vmName}`);
+            if (statsDiv) {
+                // Masquer le message de chargement
+                const loadingDiv = statsDiv.querySelector('.vm-stats-loading');
+                if (loadingDiv) {
+                    loadingDiv.style.display = 'none';
+                }
+
+                // Afficher l'erreur
+                statsDiv.innerHTML += `<div class="vm-stats-error">❌ ${error}</div>`;
+            }
+        }
+
+        // Fonctions de feedback
+        function showError(msg) {
+            const el = document.getElementById('error');
+            el.textContent = msg;
+            el.style.display = 'block';
+            document.getElementById('success').style.display = 'none';
+            setTimeout(() => {
+                el.style.display = 'none';
+            }, 5000);
+        }
+
+        function showSuccess(msg) {
+            const el = document.getElementById('success');
+            el.textContent = msg;
+            el.style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+            setTimeout(() => {
+                el.style.display = 'none';
+            }, 3000);
+        }
+
+        // Fonction pour rafraîchir manuellement
+        function refreshData() {
+            const btn = document.querySelector('.refresh-btn');
+            btn.classList.add('spinning');
+
+            clearInterval(refreshInterval);
+            fetchAll().finally(() => {
+                btn.classList.remove('spinning');
+                setupRefreshTimer();
+            });
+        }
+
+        // Setup du timer automatique (5 minutes)
+        function setupRefreshTimer() {
+            refreshInterval = setInterval(() => {
+                debugLog("⏳ Rafraîchissement automatique...");
+                fetchAll();
+            }, 5 * 60 * 1000); // 5 minutes
+        }
+
+        // Fonction principale pour charger tout
+        async function fetchAll() {
+            document.getElementById('loading').style.display = 'block';
+
+            try {
+                await loadSystemStats();
+                await loadVMs();
+                await loadVMStats();
+            } catch (error) {
+                console.error('Erreur générale:', error);
+                showError('Erreur générale: ' + error.message);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // Démarrage du dashboard
+        fetchAll();
+        setupRefreshTimer();
+    </script>
+</body>
+
+</html>
